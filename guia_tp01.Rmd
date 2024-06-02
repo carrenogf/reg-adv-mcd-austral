@@ -1,0 +1,620 @@
+---
+title: "Guía 01 de trabajos Prácticos RA"
+author: "Francisco Salvador Carreño Giscafré"
+output:
+   html_document:
+     toc: yes
+     code_folding: show
+     toc_float: yes
+     df_print: paged
+     theme: united
+     code_download: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE, message = FALSE)
+```
+
+
+## Capítulo 1 - Regresión Lineal Simple
+### 1.1. Correlación
+#### Ejercicio 1.1.
+
+<strong>
+ En el archivo grasacerdos.xlsx se encuentran los datos del peso
+vivo (PV, en Kg) y al espesor de grasa dorsal (EGD, en mm) de 30 lechones
+elegidos al azar de una población de porcinos Duroc Jersey del Oeste de la
+provincia de Buenos Aires. Se pide:
+<strong>
+
+<div>(a) Dibujar el diagrama de dispersión e interpretarlo.</div>
+<div>(b) Calcular el coeficiente de correlación muestral y explíquelo.</div>
+<div>(c) ¿Hay suficiente evidencia para admitir asociación entre el peso y el espesor de grasa? (α = 0,05). Verifique los supuestos para decidir el indicador
+que va a utilizar.
+</div>
+
+```{r}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+grasacerdos <- read_excel("datasets/grasacerdos.xlsx")
+grasacerdos <- grasacerdos %>%
+  mutate(across(where(is.character), ~ as.numeric(gsub("\\,", ".", .x))))
+attach(grasacerdos)
+print(cat("dim:",dim(grasacerdos)))
+print(cat("names:",names(grasacerdos)))
+```
+```{r}
+#(a) Dibujar el diagrama de dispersión e interpretarlo
+ggplot(data = grasacerdos, aes(x = PV, y = EGD))+geom_point(colour="red4")+
+  ggtitle("Peso vivo vs Espesor de grasa dorsal") +
+  theme_bw() + theme(plot.title = element_text(hjust = 0.5))
+```
+```{r}
+# (b) Calcular el coeficiente de correlación muestral y explíquelo.
+cor_PV_EGD <- cor.test(PV,EGD,method = "pearson")
+cor_PV_EGD
+```
+El 25,43% de la variablidad de la variable independiente está explicada por EGD, sugiriendo una asociación positiva débil.
+
+```{r}
+#¿Hay suficiente evidencia para admitir asociación entre el peso y el espesor de grasa? (α = 0,05). Verifique los supuestos para decidir el indicador que va a utilizar.
+cat("p.value",cor_PV_EGD$p.value,"\n","No se rechaza la hipótesis nula, no existe evidencia suficiente para admitir la exitendia de asociación entre las variables")
+```
+#### Ejercicio 1.2.
+
+<strong>
+Ejercicio 1.2. Los datos del cuarteto de Anscombe se encuentran en el archivo
+anscombe.xlsx
+Se pide explorar los datos de la siguiente manera:
+<div>(a) Graficar los cuatro pares de datos en un diagrama de dispersión cada
+uno.</div>
+<div>(b) Hallar los valores medios de las variables para cada par de datos.</div>
+<div>(c) Hallar los valores de la dispersión para cada conjunto de datos.</div>
+<div>(d) Hallar el coeficiente muestral de correlación lineal en cada caso.</div>
+<div>(e) Observar, comentar y concluir.</div>
+
+</strong>
+```{r}
+anscombe <- read_excel("datasets/anscombe2.xlsx")
+anscombe <- anscombe %>%
+  mutate(across(where(is.character), ~ as.numeric(gsub("\\,", ".", .x))))
+
+
+library(gridExtra)
+#(a) Graficar los cuatro pares de datos en un diagrama de dispersión cada uno
+
+# Scatter plot para Anscombe 1 con línea de ajuste
+plot1 <- ggplot(anscombe, aes(x = x1, y = y1)) +
+  geom_point(color = "blue") +
+  geom_abline(intercept = coef(lm(y1 ~ x1, data = anscombe))[1],
+              slope = coef(lm(y1 ~ x1, data = anscombe))[2],
+              color = "red") +
+  labs(title = "Anscombe 1")
+
+# Scatter plot para Anscombe 2 con línea de ajuste
+plot2 <- ggplot(anscombe, aes(x = x2, y = y2)) +
+  geom_point(color = "red") +
+  geom_abline(intercept = coef(lm(y2 ~ x2, data = anscombe))[1],
+              slope = coef(lm(y2 ~ x2, data = anscombe))[2],
+              color = "blue") +
+  labs(title = "Anscombe 2")
+
+# Scatter plot para Anscombe 3 con línea de ajuste
+plot3 <- ggplot(anscombe, aes(x = x3, y = y3)) +
+  geom_point(color = "orange") +
+  geom_abline(intercept = coef(lm(y3 ~ x3, data = anscombe))[1],
+              slope = coef(lm(y3 ~ x3, data = anscombe))[2],
+              color = "green") +
+  labs(title = "Anscombe 3")
+
+# Scatter plot para Anscombe 4 con línea de ajuste
+plot4 <- ggplot(anscombe, aes(x = x4, y = y4)) +
+  geom_point(color = "black") +
+  geom_abline(intercept = coef(lm(y4 ~ x4, data = anscombe))[1],
+              slope = coef(lm(y4 ~ x4, data = anscombe))[2],
+              color = "purple") +
+  labs(title = "Anscombe 4")
+
+# Organizar los gráficos en una cuadrícula de 2x2
+grid.arrange(plot1, plot2, plot3, plot4, ncol = 2)
+
+```
+```{r}
+#(b) Hallar los valores medios de las variables para cada par de datos.
+medias <- colMeans(anscombe)
+medias
+```
+```{r}
+# (c) Hallar los valores de la dispersión para cada conjunto de datos.
+desviacion_estandar <- apply(anscombe, 2, sd)
+desviacion_estandar
+```
+
+
+```{r}
+rango <- apply(anscombe, 2, range)
+rango
+```
+
+```{r}
+#(d) Hallar el coeficiente muestral de correlación lineal en cada caso
+cors_anscombe <- data.frame(
+  vars= c("x1-y1","x2-y2","x3-y3","x4-y4"),
+  cors=c(cor(anscombe$y1,anscombe$x1),
+         cor(anscombe$y2,anscombe$x2),
+         cor(anscombe$y3,anscombe$x3),
+         cor(anscombe$y4,anscombe$x4)
+         )
+  )
+cors_anscombe
+
+```
+
+(e) Observar, comentar y concluir
+
+Al observar los resultados, se puede concluir sobre las 4 combinaciones de anscombe que:
+* Tienen una distribución gráficamente distinta.
+* Poseen la misma recta de regresion, obtenida por OLS.
+* Poseen los mismos valores medios.
+* Sus desviaciones estándar son iguales.
+* Su coeficiente de correlación es el mismo.
+
+Esto demuestra, que el analista, no puede ni debe basar su investigación unicamente en el calculo de estadisitica descriptiva, sino que debe sumar a su metodología, la visualización de datos.
+
+El Cuarteto de Anscombe es un recordatorio de que los resúmenes estadísticos pueden ocultar diferencias importantes en los datos y que la visualización de los datos es esencial para comprender verdaderamente su estructura y relaciones.
+
+### 1.2. Modelo Lineal Simple
+#### Ejercicio 1.3.
+ <strong>
+ El archivo peso_edad_colest.xlsx disponible en contiene registros correspondientes a 25 individuos respecto de su peso, su edad y el nivel
+de colesterol total en sangre.
+Se pide:
+ </strong>
+<div>
+(a) Realizar el diagrama de dispersión de colesterol en función de la edad y
+de colesterol en función de peso. Le parece adecuado ajustar un modelo
+lineal para alguno de estos dos pares de variables?
+</div>
+<div>
+(b) Estime los coeficientes del modelo lineal para el colesterol en función de
+la edad.
+</div>
+<div>
+(c) Estime intervalos de confianza del 95 % para los coeficientes del modelo
+y compare estos resultados con el test de Wald para los coeficientes. Le
+parece que hay asociación entre estos test y el test de la regresión?
+</div>
+<div>
+(d) A partir de esta recta estime los valores de E(Y ) para x = 25 años y
+x = 48 años. Podría estimarse el valor de E(Y ) para x = 80 años?
+
+</div>
+<div>
+(e) Testee la normalidad de los residuos y haga un gráfico para ver si son
+homocedásticos
+</div>
+```{r}
+# (a) Realizar el diagrama de dispersión de colesterol en función de la edad y
+# de colesterol en función de peso. Le parece adecuado ajustar un modelo
+# lineal para alguno de estos dos pares de variables?
+
+peso_edad_colest <- read_excel("datasets/peso_edad_colest.xlsx")
+
+sc_colest_peso <- ggplot(data=peso_edad_colest, aes(x=colest, y=peso))+
+  geom_point(colour="red4")+
+  ggtitle("Colesterol vs Peso")
+sc_colest_edad <- ggplot(data = peso_edad_colest, aes(x=colest,y=edad))+
+  geom_point(colour="blue")+
+  ggtitle("Colesterol vs Edad")
+
+grid.arrange(sc_colest_peso,sc_colest_edad, ncol=2)
+
+```
+Desde la simple inspección visual, parece ser más adecuado ajustar un modelo lineal con el par Colesterol vs Edad, que a simple vista, pareciera presentar una asociación positiva, en cambio en el otro par no resulta evidente la existencia de asociación.
+
+```{r}
+# (b) Estime los coeficientes del modelo lineal para el colesterol en función de la edad.
+lm_colest_edad <- lm(colest~edad, data=peso_edad_colest)
+summary(lm_colest_edad)
+```
+```{r}
+# (c) Estime intervalos de confianza del 95 % para los coeficientes del modelo
+# y compare estos resultados con el test de Wald para los coeficientes. Le
+# parece que hay asociación entre estos test y el test de la regresión?
+library(aod)
+print("Intervalos de Confianza:")
+print(confint(lm_colest_edad,level =0.95))
+
+```
+
+
+
+```{r}
+wald.test(Sigma=vcov(lm_colest_edad), b = coef(lm_colest_edad),Terms =1)
+```
+El test de Wald, arroja como resultado del estadístico CHICuadrado 13.2, valor que se encuentra fuera del intervalo de confianza que va de 4.35 a 6.98, con un p.valor menor que 0.05, que rechaza la hipótesis nula, se concluye que el coeficiente es significativo.
+
+```{r}
+# (d) A partir de esta recta estime los valores de E(Y ) para x = 25 años y
+# x = 48 años. Podría estimarse el valor de E(Y ) para x = 80 años?
+
+data.frame(edad = c(25,48,80),predict=predict(lm_colest_edad,newdata=data.frame(edad = c(25,48,80))))
+
+```
+
+Al tratarse de una regresión lineal, es posible predecir un valor para x = 80 años, admitiendo valores incluso mayores dando como resultado, la predicción de la recta de regresión.
+
+```{r}
+# (e) Testee la normalidad de los residuos y haga un gráfico para ver si son homocedásticos
+
+ggplot(data = peso_edad_colest, aes(x = lm_colest_edad$residuals)) +
+  geom_histogram(aes(y = after_stat(density))) + 
+  labs(title = "Histograma de los residuos") + theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+Puede observarse una estructura similar a una curva normal.
+
+```{r}
+qqnorm(lm_colest_edad$residuals)
+qqline(lm_colest_edad$residuals)
+```
+```{r}
+shapiro.test(lm_colest_edad$residuals)
+```
+Con un p-valor significativo para el test de shapiro, se puede concluir de que los residuos del modelo se distribuyen normalmente.
+
+```{r}
+# Supuesto de homocedasticidad
+colesterol2 <- peso_edad_colest
+colesterol2$prediccion <- lm_colest_edad$fitted.values 
+colesterol2$residuos <- lm_colest_edad$residuals
+
+ggplot(data = colesterol2, aes(x = prediccion, y = residuos)) + 
+  geom_point(aes(color = residuos)) + 
+  scale_color_gradient2(low = "blue3", mid = "grey", high = "red") + 
+  geom_hline(yintercept = 0) + geom_segment(aes(xend = prediccion, yend = 0), alpha = 0.2) + 
+  labs(title = "Distribución de los residuos", x = "predicción modelo", y = "residuo") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+```
+No se observa estructura en la distribución de los residuos para cada predicción del modelo que invalide el supuesto de homocedasticidad.
+
+```{r}
+# Test de Breusch-Pagan
+# Analizamos si los residuos tienen varianza constante (homocedasticidad) con el test de Breusch-Pagan
+
+library(lmtest)
+bptest(lm_colest_edad)
+
+```
+No se rechaza homocedasticidad al obtener un p.value mayor a 0.05 para el test de Breusch-Pagan.
+
+
+### 1.3. Transformación de Variables
+#### Ejercicio 1.4.
+ <strong>
+Una empresa desarrolló un sistema de energía solar para calentar el agua para una caldera que es parte del sistema de energía del proceso productivo. Existe el interés de controlar la estabilidad del sistema, para ello se monitorea el mismo y se registran los datos cada hora. Los datos se encuentran disponibles en el archivo energia.xlsx
+ </strong>
+ 
+```{r}
+# (a) Realizar el diagrama de dispersión y evaluar si un modelo de regresión lineal es adecuado.
+energia <- read_excel("datasets/energia.xlsx")
+ggplot(data=energia, aes(x=Hora,y=Energía))+
+  geom_point(colour="red3")+
+  geom_smooth(method = "lm", se = FALSE, color = "blue", na.rm = TRUE)
+
+```
+ Se observa una recta de regresion casi plana, indicando un r2 cercano a cero
+```{r}
+lm_ene1 <- lm(Energía~Hora,data=energia)
+summary(lm_ene1)
+```
+ con un r2adj de -0.01 y un p-value de 0.59, este modelo lineal no es el adecuado para explicar la variable dependiente.
+ 
+```{r}
+# (b) Estimar un modelo lineal y verificar la normalidad de los residuos del mismo.
+
+shapiro.test(lm_ene1$residuals)
+```
+ Se rechaza la normalidad de los residuos
+
+```{r}
+# (c) En caso de rechazar este supuesto buscar una transformación lineal para este modelo y aplicarla.
+
+library(MASS)
+
+boxcox(Energía ~ Hora, lambda = -8:4, data = energia)
+```
+```{r}
+bc <- boxcox(Energía ~ Hora, lambda = -8:4, data = energia)
+lambda_opt <- bc$x[which.max(bc$y)]
+lambda_opt
+```
+El lambda optimo que maximiza la verosimilitud es de -1.33, distinto de 0, por lo que debería optarse por la transformación adecuada:  
+
+```{r}
+energia$Energía_trans <- (energia$Energía^lambda_opt - 1) / lambda_opt
+lm_ene2 <- lm(Energía_trans~Hora,data=energia)
+summary(lm_ene2)
+
+```
+```{r}
+# (d) Realizar el análisis diagnóstico del nuevo modelo y estimar un intervalo
+# de confianza y un intervalo de predicción para 27.5 hs con ambos modelos. Comparar los intervalos.
+par(mfrow=c(2,2))
+plot(lm_ene2)
+
+```
+```{r}
+
+shapiro.test(lm_ene2$residuals)
+```
+```{r}
+bptest(lm_ene2)
+```
+
+* No se rechaza normalidad de los residuos del nuevo modelo por el test de shapiro.
+* No se observa estructura en la distribución de los residuos para cada predicción del modelo que invalide el supuesto de homocedasticidad.
+* No se rechaza la homocedasticidad de los residuos por el test de Breusch-Pagan.
+
+
+### 1.4. Tratamiento de la heterocedasticidad
+#### Ejercicio 1.5.
+
+<strong>
+Se obtuvieron datos históricos del mercado inmobiliario de una
+ciudad de Nueva Taipei, en Taiwan. La base es inmobiliaria.xlsx .
+
+Se quiere investigar si el precio de las propiedades puede ser estimado en
+función de alguna de las variables disponibles.
+</strong>
+```{r}
+# (a) Analizar si el precio depende de alguna de las variables.
+
+inmuebles <-  read.csv("datasets/inmobiliaria.csv", sep=";")
+library(corrplot)
+par(bg="grey")
+M=cor(inmuebles)
+corrplot(M,method="number",type="upper")
+
+```
+```{r}
+graficos <- list() 
+for (var in setdiff(names(inmuebles), "precio")){
+  plot <- ggplot(data=inmuebles,aes_string(y="precio",x=var))+
+            geom_point(colour="red2")+
+            geom_smooth(method="lm",colour="black")+
+            ggtitle(paste("ScatterPlot Precio vs",var))
+  graficos[[var]] <- plot
+}
+grid.arrange(grobs = graficos, ncol = 3)
+
+```
+La Variable Distancia parece ser la más prometedora con una correlación de -0.67, indicando una asociación moderadamente fuerte negativa.
+```{r}
+# (b) Estudiar la linealidad de la relación precio-distancia.
+
+ggplot(data=inmuebles,aes(y=precio,x=distancia))+
+            geom_point(colour="red2")+
+            geom_smooth(method="lm",colour="black")+
+            ggtitle(paste("ScatterPlot Precio vs",var))
+```
+```{r}
+lm_pdist <- lm(precio~distancia, data=inmuebles)
+summary(lm_pdist)
+```
+con un Pvalor significativamente pequeño, el modelo presenta una asociación moderada positiva, en la que la variablidad del precio está explicada en un 45% por la variabilidad en la distancia, siendo ésta una variable significativa para el modelo.
+
+```{r}
+# (c) Estimar los coeficientes del modelo y realizar el análisis diagnóstico de
+# los residuos del mismo. Utilizar para este análisis los gráficos de residuos
+# versus valores ajustados, el qq-plot de los residuos, la grafica de residuos
+# versus leverage.
+
+# (d) Aplicar los test de Durbin-Watson Breush-Pagan.
+
+library(car)
+analisis_diagnostico <- function(variable_independiente, variable_dependiente) {
+  # Ajustar un modelo lineal
+  modelo <- lm(variable_dependiente ~ variable_independiente)
+  
+  # Análisis diagnóstico de los residuos
+  # Gráfico de residuos versus valores ajustados
+  plot(residuals(modelo) ~ fitted(modelo), 
+       main = "Residuals vs Fitted",
+       xlab = "Fitted values",
+       ylab = "Residuals")
+  
+  # QQ-plot de los residuos
+  qqnorm(residuals(modelo), main = "QQ-plot de los Residuos")
+  qqline(residuals(modelo))
+  
+  # Gráfico de residuos versus leverage
+  plot(hatvalues(modelo), residuals(modelo),
+       main = "Residuals vs Leverage",
+       xlab = "Leverage",
+       ylab = "Residuals")
+  
+  # Prueba de normalidad de Shapiro-Wilk
+  shapiro_test <- shapiro.test(residuals(modelo))
+  
+  # Prueba Breusch-Pagan para la heterocedasticidad
+  bp_test <- bptest(modelo)
+  
+  dwt_test <- dwt(modelo)
+  
+  # Imprimir los resultados
+
+  cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+  print(shapiro_test)
+  cat("\n")
+  
+  cat("Prueba Breusch-Pagan para heterocedasticidad de los residuos:\n")
+  print(bp_test)
+  cat("\n")
+    
+  cat("Prueba Durbin-Watson para Autocorrelación:\n")
+  print(bp_test)
+  # Devolver el modelo ajustado
+  return(modelo)
+}
+
+# Ejemplo de uso de la función
+# Suponiendo que tienes dos variables x e y
+resultado_modelo <- analisis_diagnostico(inmuebles$distancia, inmuebles$precio)
+
+```
+* Por el test de Shapiro, se descarta la normlidad de los residuos.
+* por el test de Breusch-Pagan, no se rechaza homocedasticidad.
+* por el test de durbin-watson se rechaza autocorrelación.
+
+```{r}
+# (e) Analice la presencia de outlier y verifique si coinciden con los puntos influyentes.
+
+res_stu_1<-rstudent(lm_pdist)
+res_stu_1[abs(res_stu_1)>3]
+```
+```{r}
+summary(influence.measures(model = lm_pdist))
+```
+
+```{r}
+influencePlot(model = lm_pdist)
+```
+
+```{r}
+influenceIndexPlot(lm_pdist, vars='Bonf', las=1,col='green')
+```
+```{r}
+outlierTest(lm_pdist)
+```
+Los test de influencia y outlayers coinciden en los elementos 266,109
+
+
+### 1.5. Cuadrados Mínimos Ponderados
+#### Ejercicio 1.6.
+ <strong>
+ En la base estudio.xlsx se encuentran registradas las horas de estudios referidas por un conjunto de estudiantes y su calificación en la evaluación final.
+ </strong>
+ 
+```{r}
+# (a) Ajuste un modelo de regresión simple para estimar la nota final en función de las horas dedicadas al estudio.
+
+estudio <- read.csv("datasets/estudio.csv",sep=";")
+
+lm1_estudio <- lm(puntaje~horas_estudio, data=estudio)
+summary(lm1_estudio)
+
+```
+```{r}
+ggplot(data=estudio,aes(y=puntaje,x=horas_estudio))+
+            geom_point(colour="red2")+
+            geom_smooth(method="lm",colour="black")+
+            ggtitle(paste("ScatterPlot puntaje vs horas_estudio"))
+```
+
+El modelo presenta una asoción moderada positiva significativa. la variable horas_estudio es una regresora significativa para el modelo cuya variablidad explica el 50% de la de la variable dependiente puntaje.
+
+```{r}
+# (b) Estudie el cumplimiento de los supuestos del modelo, gráfica y analíticamente.
+
+# Análisis de normalidad multivariada - Test de Henze Zirkler
+
+library(MVN)
+#Usamos Test Henze-Zirkler para evaluar normalidad multivariada (bivariada en este caso)
+respuesta_testHZ<-mvn(estudio , mvnTest = "hz")
+respuesta_testHZ
+
+```
+ las variables son normales, pero se rechaza normalidad bivariada.
+```{r}
+# analisis diagnostico
+analisis_diagnostico(estudio$horas_estudio,estudio$puntaje)
+```
+ * rechaza normalidad de los residus
+ * rechaza heterocidasticidad de los residuos
+ * rechaza no autocorrelación
+```{r}
+ww<-1 / lm(abs(lm1_estudio$residuals) ~ lm1_estudio$fitted.values)$fitted.values^2
+www<-1 / (abs(lm1_estudio$residuals))
+
+
+plot(estudio$horas_estudio,estudio$puntaje,xlab="horas_estudio",ylab="puntaje",
+     main="horas_estudio vs puntaje", ylim=c(0,100))
+
+abline(lm1_estudio,col="grey",lwd=2)
+
+lm1_estudio_ww<- lm(puntaje ~ horas_estudio, data = estudio,weights =ww)
+lm1_estudio_www<- lm(puntaje ~ horas_estudio, data = estudio,weights =www)
+abline(lm1_estudio_ww,col="hotpink",lwd=2)
+abline(lm1_estudio_www,col="gold",lwd=2)
+```
+```{r}
+# (e) Compare ambos ajustes realizados y concluya.
+summary(lm1_estudio_ww)
+summary(lm1_estudio_www)
+```
+ 
+ Los modelos ajustados con el método de minimos cuadrados ponderados presentan un R2adj superior al modelo simple, en ambos casos significativos.
+ 
+```{r}
+# supuestos de los residuos ww
+
+  
+  # Prueba de normalidad de Shapiro-Wilk
+  shapiro_test <- shapiro.test(residuals(lm1_estudio_ww))
+  
+  # Prueba Breusch-Pagan para la heterocedasticidad
+  bp_test <- bptest(lm1_estudio_ww)
+  
+  dwt_test <- dwt(lm1_estudio_ww)
+  
+  # Imprimir los resultados
+
+  cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+  print(shapiro_test)
+  cat("\n")
+  
+  cat("Prueba Breusch-Pagan para heterocedasticidad de los residuos:\n")
+  print(bp_test)
+  cat("\n")
+    
+  cat("Prueba Durbin-Watson para Autocorrelación:\n")
+  print(bp_test)
+
+
+```
+ 
+```{r}
+# supuestos de los residuos www
+
+  
+  # Prueba de normalidad de Shapiro-Wilk
+  shapiro_test <- shapiro.test(residuals(lm1_estudio_www))
+  
+  # Prueba Breusch-Pagan para la heterocedasticidad
+  bp_test <- bptest(lm1_estudio_www)
+  
+  dwt_test <- dwt(lm1_estudio_www)
+  
+  # Imprimir los resultados
+
+  cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+  print(shapiro_test)
+  cat("\n")
+  
+  cat("Prueba Breusch-Pagan para heterocedasticidad de los residuos:\n")
+  print(bp_test)
+  cat("\n")
+    
+  cat("Prueba Durbin-Watson para Autocorrelación:\n")
+  print(bp_test)
+```
+ 
+ Para los modelos ajustados con wls:
+ * se rechaza normalidad de los residuos
+ * no se rechaza homocedasticidad de los residuos
+ * se rechaza autocorrelación
+ 
+ 
+ Como conclusión final para este caso, comparando los modelos de ols vs wls, se puede ver que ponderando mas a las observaciones con menos varianza se obtiene un mejor ajuste.
